@@ -28,7 +28,7 @@ namespace API_de_Gestión_de_Usuarios.Services.IJwtServiceCarpeta
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Nombre),
                 new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
-                new Claim(ClaimTypes.Role, usuario.Email)
+                new Claim(ClaimTypes.Email, usuario.Email)
             };
 
             // 3. Crear credenciales de firma
