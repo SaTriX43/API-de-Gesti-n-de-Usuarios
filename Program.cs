@@ -8,6 +8,7 @@ using API_de_Gestión_de_Usuarios.Models;
 using API_de_Gestión_de_Usuarios.Services;
 using API_de_Gestión_de_Usuarios.DALs;
 using API_de_Gestión_de_Usuarios.Services.IJwtServiceCarpeta;
+using API_de_Gestión_de_Usuarios.Services.UsuarioServiceCarpeta;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +67,7 @@ builder.Services.AddScoped<IAutenticacionService, AutenticacionService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 

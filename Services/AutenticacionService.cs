@@ -2,6 +2,7 @@
 using API_de_Gestión_de_Usuarios.DTOs.AutenticacionDtoCarpeta;
 using API_de_Gestión_de_Usuarios.DTOs.UsuarioDtoCarpeta;
 using API_de_Gestión_de_Usuarios.Models;
+using API_de_Gestión_de_Usuarios.Models.Enums;
 using API_de_Gestión_de_Usuarios.Services.IJwtServiceCarpeta;
 using Microsoft.AspNetCore.Components.Forms;
 
@@ -46,7 +47,7 @@ namespace API_de_Gestión_de_Usuarios.Services
                 Nombre = usuarioCrear.Nombre,
                 Email = emailNormalizado,
                 PasswordHash = passwordHash,
-                Rol = "user"
+                Rol = RolUsuario.Usuario
             };
 
             var usuarioCreadoModel = await _usuarioRepository.Registrar(usuarioModel);
@@ -70,7 +71,7 @@ namespace API_de_Gestión_de_Usuarios.Services
                 Nombre = usuarioCreadoModel.Nombre,
                 Email = usuarioCreadoModel.Email,
                 Id = usuarioCreadoModel.Id,
-                Rol = usuarioCreadoModel.Rol
+                Rol = usuarioCreadoModel.Rol.ToString(),
             };
 
             var token = _jwtService.GenerarToken(usuarioCreadoModel);
@@ -123,7 +124,7 @@ namespace API_de_Gestión_de_Usuarios.Services
                 Id = usuarioEncontrado.Id,
                 Email = usuarioEncontrado.Email,
                 Nombre = usuarioEncontrado.Nombre,
-                Rol = usuarioEncontrado.Rol,
+                Rol = usuarioEncontrado.Rol.ToString(),
             };
 
             return Result<AutenticacionRespuestaDto>.Success(new AutenticacionRespuestaDto
@@ -186,7 +187,7 @@ namespace API_de_Gestión_de_Usuarios.Services
                 Id = tokenEncontrado.UserId,
                 Email = tokenEncontrado.Usuario.Email,
                 Nombre = tokenEncontrado.Usuario.Nombre,
-                Rol = tokenEncontrado.Usuario.Rol
+                Rol = tokenEncontrado.Usuario.Rol.ToString(),
             };
 
             return Result<AutenticacionRespuestaDto>.Success(new AutenticacionRespuestaDto

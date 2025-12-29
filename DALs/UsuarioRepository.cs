@@ -30,5 +30,11 @@ namespace API_de_Gestión_de_Usuarios.DALs
             var usuarioEncontrado = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
             return usuarioEncontrado;
         }
+
+        public async Task<List<Usuario>> ObtenerUsuariosAsync()
+        {
+            var usuarios = await _context.Usuarios.ToListAsync();
+            return usuarios;
+        }
     }
 }

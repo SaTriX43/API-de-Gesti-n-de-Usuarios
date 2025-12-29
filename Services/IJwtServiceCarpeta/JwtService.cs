@@ -27,7 +27,7 @@ namespace API_de_Gestión_de_Usuarios.Services.IJwtServiceCarpeta
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Nombre),
-                new Claim(ClaimTypes.Role, usuario.Rol),
+                new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
                 new Claim(ClaimTypes.Role, usuario.Email)
             };
 
