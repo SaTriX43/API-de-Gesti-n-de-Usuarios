@@ -42,6 +42,25 @@ namespace API_de_Gestión_de_Usuarios.Services.UsuarioServiceCarpeta
 
             return Result<List<UsuarioDto>>.Success(usuariosDtos);
         }
-        //public Task<Result<UsuarioDto>> ObtenerUsuarioAsync(int usuarioId);
+
+        public async Task<Result<UsuarioDto>> ObtenerUsuarioAsync(int usuarioId)
+        {
+            var usuarioExiste = await _usuarioRepository.ObtenerUsuarioPorIdAsync(usuarioId);
+
+            if (usuarioExiste == null)
+            {
+                return Result<UsuarioDto>.Failure($"Su usuario con id = {usuarioId} no existe");
+            }
+
+            var usuarioDto = new UsuarioDto
+            {
+                Id = usuarioId,
+                Email = usuarioExiste.Email,
+                Nombre = usuarioExiste.Nombre,
+                Rol = usuarioExiste.Rol.ToString()
+            };
+
+            return Result<UsuarioDto>.Success(usuarioDto);
+        }
     }
 }

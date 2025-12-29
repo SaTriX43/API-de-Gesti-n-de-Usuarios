@@ -49,5 +49,39 @@ namespace API_de_Gestión_de_Usuarios.Controllers
                 value = usuarios.Value
             });
         }
+
+        [Authorize]
+        [HttpGet("perfil")]
+        public async Task<IActionResult> Perfil()
+        {
+            var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(usuarioIdClaim, out var usuarioId))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    error = "usuarioId debe de ser un numero"
+                });
+            }
+
+            var usuario = await _usuarioService.ObtenerUsuarioAsync(usuarioId);
+
+            if (usuario.IsFailure)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    error = usuario.Error
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                value = usuario.Value
+            });
+        }
     }
 }
+
