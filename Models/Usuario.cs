@@ -13,5 +13,6 @@ namespace API_de_Gestión_de_Usuarios.Models
         [Required]
         public string PasswordHash { get; set; }
         public string Rol { get; set; } = "user";
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();    
     }
 }

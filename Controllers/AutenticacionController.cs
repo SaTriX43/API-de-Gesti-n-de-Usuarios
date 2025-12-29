@@ -76,5 +76,62 @@ namespace API_de_Gestión_de_Usuarios.Controllers
                 valor = usuarioLogeado.Value
             });
         }
+
+        [HttpPost("refreshToken")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshToken)
+        {
+            if(!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    error = ModelState
+                });
+            }
+
+            var respuesta = await _autenticacionService.RefreshToken(refreshToken);
+
+            if(respuesta.IsFailure)
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    error = respuesta.Error
+                });
+            }
+
+            return Ok(
+                new
+                {
+                    success = true,
+                    valor = respuesta.Value
+                });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenDto refreshToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    error = ModelState
+                });
+            }
+
+            var respuesta = await _autenticacionService.Logout(refreshToken);
+
+            if (respuesta.IsFailure)
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    error = respuesta.Error
+                });
+            }
+
+            return NoContent();
+        }
     }
 }

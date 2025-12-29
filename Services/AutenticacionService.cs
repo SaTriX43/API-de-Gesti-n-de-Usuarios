@@ -9,19 +9,19 @@ namespace API_de_Gestión_de_Usuarios.Services
 {
     public class AutenticacionService : IAutenticacionService
     {
-        private readonly IAutenticacionRepository _autenticacionRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IJwtService _jwtService;
         private readonly IConfiguration _configuration;
 
         public AutenticacionService(
-            IAutenticacionRepository autenticacionRepository, 
+            IRefreshTokenRepository refreshTokenRepository, 
             IConfiguration configuration, 
             IUsuarioRepository usuarioRepository,
             IJwtService jwtService
         )
         {
-            _autenticacionRepository = autenticacionRepository;
+            _refreshTokenRepository = refreshTokenRepository;
             _configuration = configuration;
             _usuarioRepository = usuarioRepository;
             _jwtService = jwtService;
@@ -32,7 +32,7 @@ namespace API_de_Gestión_de_Usuarios.Services
         public async Task<Result<AutenticacionRespuestaDto>> Registrar(UsuarioCrearDto usuarioCrear)
         {
             var emailNormalizado = usuarioCrear.Email.Trim().ToLower();
-            var usuarioExiste = await _usuarioRepository.ObtenerUsuarioPorEmail(emailNormalizado);
+            var usuarioExiste = await _usuarioRepository.ObtenerUsuarioPorEmailAsync(emailNormalizado);
 
             if(usuarioExiste != null)
             {
@@ -49,7 +49,21 @@ namespace API_de_Gestión_de_Usuarios.Services
                 Rol = "user"
             };
 
-            var usuarioCreadoModel = await _autenticacionRepository.Registrar(usuarioModel);
+            var usuarioCreadoModel = await _usuarioRepository.Registrar(usuarioModel);
+
+            var nuevoRefreshToken = new RefreshToken
+            {
+                Token = Guid.NewGuid().ToString(),
+                UserId = usuarioCreadoModel.Id,
+                CreadoEn = DateTime.UtcNow,
+                ExpiraEn = DateTime.UtcNow.AddDays(
+                    _configuration.GetValue<int>("Jwt:RefreshTokenDays")
+                 ),
+                Usado = false
+            };
+
+            var refreshTokenCreado = await _refreshTokenRepository.CrearRefreshToken(nuevoRefreshToken);
+
 
             var usuarioCreadoDto = new UsuarioDto
             {
@@ -66,6 +80,7 @@ namespace API_de_Gestión_de_Usuarios.Services
             return Result<AutenticacionRespuestaDto>.Success(new AutenticacionRespuestaDto
             {
                 Token = token,
+                RefreshToken = refreshTokenCreado.Token,
                 Usuario = usuarioCreadoDto,
                 TiempoExpiracionMinutos = tokenMinutos
             });
@@ -74,7 +89,7 @@ namespace API_de_Gestión_de_Usuarios.Services
         public async Task<Result<AutenticacionRespuestaDto>> Login(LoginDto login)
         {
             var emailNormalizado = login.Email.Trim().ToLower();
-            var usuarioEncontrado = await _usuarioRepository.ObtenerUsuarioPorEmail(emailNormalizado);
+            var usuarioEncontrado = await _usuarioRepository.ObtenerUsuarioPorEmailAsync(emailNormalizado);
 
             if(usuarioEncontrado == null)
             {
@@ -90,6 +105,19 @@ namespace API_de_Gestión_de_Usuarios.Services
 
             var token = _jwtService.GenerarToken(usuarioEncontrado);
 
+            var nuevoRefreshToken = new RefreshToken
+            {
+                Token = Guid.NewGuid().ToString(),
+                UserId = usuarioEncontrado.Id,
+                CreadoEn = DateTime.UtcNow,
+                ExpiraEn = DateTime.UtcNow.AddDays(
+                    _configuration.GetValue<int>("Jwt:RefreshTokenDays")
+                 ),
+                Usado = false
+            };
+
+            var refreshTokenCreado = await _refreshTokenRepository.CrearRefreshToken(nuevoRefreshToken);
+
             var usuarioDto = new UsuarioDto
             {
                 Id = usuarioEncontrado.Id,
@@ -101,9 +129,102 @@ namespace API_de_Gestión_de_Usuarios.Services
             return Result<AutenticacionRespuestaDto>.Success(new AutenticacionRespuestaDto
             {
                 Token = token,
+                RefreshToken = refreshTokenCreado.Token,
                 Usuario = usuarioDto,
                 TiempoExpiracionMinutos = _configuration.GetValue<int>("Jwt:AccessTokenMinutes")
             });
+        }
+
+        public async Task<Result<AutenticacionRespuestaDto>> RefreshToken(RefreshTokenDto token)
+        {
+            var tokenEncontrado = await _refreshTokenRepository.ObtenerRefreshToken(token.RefreshToken);
+
+            if(tokenEncontrado == null)
+            {
+                return Result<AutenticacionRespuestaDto>.Failure("Su refresh token no existe");
+            }
+
+            if(tokenEncontrado.RevocadoEn != null)
+            {
+                return Result<AutenticacionRespuestaDto>.Failure("Su refresh token ya fue revocado");
+            }
+
+            if (tokenEncontrado.ExpiraEn < DateTime.UtcNow)
+            {
+                return Result<AutenticacionRespuestaDto>.Failure("Su refresh token ya expiro");
+            }
+
+            if(tokenEncontrado.Usado)
+            {
+                return Result<AutenticacionRespuestaDto>.Failure("Su refresh token ya ha sido usado");
+            }
+
+            if(tokenEncontrado.Usuario == null) 
+            {
+                return Result<AutenticacionRespuestaDto>.Failure($"El usuario asociado al refresh token no existe");
+            }
+
+            tokenEncontrado.Usado = true;
+            tokenEncontrado.RevocadoEn = DateTime.UtcNow;
+
+            var nuevoRefreshToken = new RefreshToken
+            {
+                Token = Guid.NewGuid().ToString(),
+                UserId = tokenEncontrado.UserId,
+                CreadoEn = DateTime.UtcNow,
+                ExpiraEn = DateTime.UtcNow.AddDays(
+                    _configuration.GetValue<int>("Jwt:RefreshTokenDays")
+                 ),
+                Usado = false
+            };
+
+            var refreshTokenCreado = await _refreshTokenRepository.CrearRefreshToken(nuevoRefreshToken);
+
+            var accessToken = _jwtService.GenerarToken(tokenEncontrado.Usuario);
+            var usuarioDto = new UsuarioDto
+            {
+                Id = tokenEncontrado.UserId,
+                Email = tokenEncontrado.Usuario.Email,
+                Nombre = tokenEncontrado.Usuario.Nombre,
+                Rol = tokenEncontrado.Usuario.Rol
+            };
+
+            return Result<AutenticacionRespuestaDto>.Success(new AutenticacionRespuestaDto
+            {
+                Token = accessToken,
+                Usuario = usuarioDto,
+                RefreshToken = refreshTokenCreado.Token,
+                TiempoExpiracionMinutos = _configuration.GetValue<int>("Jwt:AccessTokenMinutes"),
+
+            });
+        }
+        public async Task<Result> Logout(RefreshTokenDto token)
+        {
+            var tokenEncontrado = await _refreshTokenRepository.ObtenerRefreshToken(token.RefreshToken);
+
+            if (tokenEncontrado == null)
+            {
+                return Result.Failure("Refresh token no existe");
+            }
+
+            if(tokenEncontrado.RevocadoEn != null) 
+            {
+                return Result.Failure("Su Refresh token ya ha sido revocado");
+            }
+
+            if(tokenEncontrado.ExpiraEn < DateTime.UtcNow)
+            {
+                return Result.Failure("Su Refresh token ya ha expirado ");
+            }
+
+            if(tokenEncontrado.Usuario == null)
+            {
+                return Result.Failure("Su Usuario no existe");
+            }
+
+            await _refreshTokenRepository.RevocarRefreshToken(tokenEncontrado);
+
+            return Result.Success();
         }
     }
 }

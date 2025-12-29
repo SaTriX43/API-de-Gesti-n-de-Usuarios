@@ -63,7 +63,7 @@ builder.Services.AddSwaggerGen();
 
 
 builder.Services.AddScoped<IAutenticacionService, AutenticacionService>();
-builder.Services.AddScoped<IAutenticacionRepository, AutenticacionRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 

@@ -8,5 +8,7 @@ namespace API_de_Gestión_de_Usuarios.Services
     {
         public Task<Result<AutenticacionRespuestaDto>> Registrar(UsuarioCrearDto usuarioCrear);
         public Task<Result<AutenticacionRespuestaDto>> Login(LoginDto login);
+        public Task<Result<AutenticacionRespuestaDto>> RefreshToken(RefreshTokenDto token);
+        public Task<Result> Logout(RefreshTokenDto token);
     }
 }
